@@ -1,0 +1,2 @@
+# youtube-data-collector
+指定したYouTubeチャンネルの動画データを収集し、再生回数、コメント数などを含むExcelファイルを生成するPythonスクリプト。
