@@ -5,6 +5,18 @@ import isodate
 from datetime import datetime, timezone
 from configparser import ConfigParser
 import os.path as osp
+import logging
+
+def setup_logging(log_file):
+    """ログの設定を行う関数"""
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file, encoding='utf-8'),
+            logging.StreamHandler()
+        ]
+    )
 
 def load_settings(file_path):
     """設定ファイルを読み込む関数"""
@@ -12,17 +24,20 @@ def load_settings(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             settings.read_file(f)
+        logging.info("設定ファイルの読み込みに成功しました。")
     except FileNotFoundError:
-        print("Error: settings.iniファイルが見つかりません。")
+        logging.error("settings.iniファイルが見つかりません。")
         exit(1)
     return settings
 
 def get_api_client(api_key):
     """YouTube APIクライアントの構築"""
     try:
-        return build('youtube', 'v3', developerKey=api_key)
+        client = build('youtube', 'v3', developerKey=api_key)
+        logging.info("YouTube APIクライアントの構築に成功しました。")
+        return client
     except Exception as e:
-        print(f"Error: YouTube APIクライアントの構築に失敗しました: {e}")
+        logging.error(f"YouTube APIクライアントの構築に失敗しました: {e}")
         exit(1)
 
 def get_uploads_playlist_id(youtube, channel_id):
@@ -32,9 +47,10 @@ def get_uploads_playlist_id(youtube, channel_id):
             part='contentDetails',
             id=channel_id
         ).execute()
+        logging.info("チャンネル情報の取得に成功しました。")
         return channel_response['items'][0]['contentDetails']['relatedPlaylists']['uploads']
     except Exception as e:
-        print(f"Error: チャンネル情報の取得に失敗しました: {e}")
+        logging.error(f"チャンネル情報の取得に失敗しました: {e}")
         exit(1)
 
 def get_videos_in_date_range(youtube, playlist_id, published_after_str, published_before_str, video_type):
@@ -42,7 +58,7 @@ def get_videos_in_date_range(youtube, playlist_id, published_after_str, publishe
     videos = []
     next_page_token = None
 
-    print("データの集計をしています...")
+    logging.info("データの集計を開始します...")
 
     while True:
         try:
@@ -52,8 +68,9 @@ def get_videos_in_date_range(youtube, playlist_id, published_after_str, publishe
                 maxResults=50,
                 pageToken=next_page_token
             ).execute()
+            logging.info("動画リストの取得に成功しました。")
         except Exception as e:
-            print(f"Error: 動画リストの取得に失敗しました: {e}")
+            logging.error(f"動画リストの取得に失敗しました: {e}")
             break
 
         for item in playlist_response.get('items', []):
@@ -88,8 +105,9 @@ def get_videos_in_date_range(youtube, playlist_id, published_after_str, publishe
                                 'イイネ数': int(like_count),
                                 'コメント数': int(comment_count),
                             })
+                            logging.info(f"動画情報を収集しました: {title}")
                 except Exception as e:
-                    print(f"Error: 動画の詳細情報の取得に失敗しました: {e}")
+                    logging.error(f"動画の詳細情報の取得に失敗しました: {e}")
 
         next_page_token = playlist_response.get('nextPageToken')
         if not next_page_token:
@@ -102,13 +120,17 @@ def save_to_excel(data, output_file):
     try:
         df = pd.DataFrame(data)
         df.to_excel(output_file, index=False)
-        print(f"Excelファイルが保存されました: {output_file}")
+        logging.info(f"Excelファイルが保存されました: {output_file}")
     except Exception as e:
-        print(f"Error: Excelファイルの保存に失敗しました: {e}")
+        logging.error(f"Excelファイルの保存に失敗しました: {e}")
 
 def main():
     # settings.iniファイルのパスを取得
     FILE = osp.join(osp.dirname(__file__), "settings.ini")
+    
+    # ログファイルの設定
+    LOG_FILE = osp.join(osp.dirname(__file__), "youtube_data_collector.log")
+    setup_logging(LOG_FILE)
 
     # 設定を読み込む
     settings = load_settings(FILE)
@@ -126,7 +148,7 @@ def main():
     CHANNEL_ID = settings["entity"].get("CHANNEL_ID")
 
     if not API_KEY or not CHANNEL_ID:
-        print("Error: APIキーまたはチャンネルIDが取得できませんでした。'.ini'ファイルを確認してください。")
+        logging.error("APIキーまたはチャンネルIDが取得できませんでした。'.ini'ファイルを確認してください。")
         exit(1)
 
     # YouTube APIクライアントの構築
