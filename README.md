@@ -72,6 +72,9 @@ GCP_APIKEY = your-google-api-key-here
 
 # YouTubeチャンネルID (対象のチャンネルIDを入力)
 CHANNEL_ID = your-channel-id-here
+
+# 出力ディレクトリ (Excelファイルの保存先)
+OUTPUT_DIR = ./output
 ```
 
 - `PUBLISHED_AFTER`: 収集する動画の最小公開日
@@ -79,6 +82,7 @@ CHANNEL_ID = your-channel-id-here
 - `VIDEO_TYPE`: `ショート` または `長編` を指定
 - `GCP_APIKEY`: 取得したYouTube APIのAPIキー
 - `CHANNEL_ID`: 収集対象のYouTubeチャンネルID
+-  `OUTPUT_DIR: Excelファイルの保存先ディレクトリ
 
 ## 使い方
 
