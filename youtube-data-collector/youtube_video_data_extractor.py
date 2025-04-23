@@ -6,14 +6,17 @@ from datetime import datetime, timezone
 from configparser import ConfigParser
 import os.path as osp
 import logging
+from logging.handlers import RotatingFileHandler
 
 def setup_logging(log_file):
     """ログの設定を行う関数"""
+    # ローテーションを設定し、最大ファイルサイズを設定
+    handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=2, encoding='utf-8')
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(log_file, encoding='utf-8'),
+            handler,
             logging.StreamHandler()
         ]
     )
@@ -57,6 +60,7 @@ def get_videos_in_date_range(youtube, playlist_id, published_after_str, publishe
     """指定された日付範囲内の動画情報を取得する関数"""
     videos = []
     next_page_token = None
+    video_count = 0
 
     logging.info("データの集計を開始します...")
 
@@ -105,7 +109,8 @@ def get_videos_in_date_range(youtube, playlist_id, published_after_str, publishe
                                 'イイネ数': int(like_count),
                                 'コメント数': int(comment_count),
                             })
-                            logging.info(f"動画情報を収集しました: {title}")
+                            video_count += 1
+                            logging.debug(f"動画情報を収集しました: {title}")
                 except Exception as e:
                     logging.error(f"動画の詳細情報の取得に失敗しました: {e}")
 
@@ -113,6 +118,7 @@ def get_videos_in_date_range(youtube, playlist_id, published_after_str, publishe
         if not next_page_token:
             break
 
+    logging.info(f"動画情報の収集が完了しました。総収集動画数: {video_count}")
     return videos
 
 def save_to_excel(data, output_file):
